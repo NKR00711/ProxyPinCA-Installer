@@ -144,9 +144,10 @@ jobs:
       run: |
         echo "## ProxyPin Certificate Installer ${{ steps.version.outputs.version }}" > RELEASE_NOTES.md
         echo "" >> RELEASE_NOTES.md
-        echo "**Author:** [firdausmntp](https://github.com/firdausmntp)" >> RELEASE_NOTES.md
+        echo "**Author:** [NKR00711](https://github.com/NKR00711)" >> RELEASE_NOTES.md
         echo "" >> RELEASE_NOTES.md
         echo "### Features" >> RELEASE_NOTES.md
+        echo "- ✅ Supports NoMount MetaModule" >> RELEASE_NOTES.md
         echo "- ✅ Universal root support (Magisk/KernelSU/SukiSU/APatch)" >> RELEASE_NOTES.md
         echo "- ✅ Android 5.0 - 16 (API 21-36) support" >> RELEASE_NOTES.md
         echo "- ✅ **APEX CA bypass for Android 14+**" >> RELEASE_NOTES.md
