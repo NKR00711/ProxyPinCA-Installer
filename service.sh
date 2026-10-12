@@ -8,6 +8,9 @@ CERT_DIR="${MODDIR}/system/etc/security/cacerts"
 TEMP_DIR="/data/local/tmp/proxypin-apex-ca"
 APEX_CACERTS="/apex/com.android.conscrypt/cacerts"
 
+# NoMount binary path
+NOMOUNT_NM="/data/adb/modules/nomount/bin/nm"
+
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [service] $1" >> "$LOG_FILE"
 }
@@ -26,6 +29,37 @@ while [ "$(getprop sys.boot_completed)" != "1" ] && [ $count -lt 60 ]; do
     count=$((count + 1))
 done
 log "Boot completed (${count}s)"
+
+# If NoMount present, re-apply rules via nm (preferred)
+if [ -x "$NOMOUNT_NM" ]; then
+    log "NoMount detected at $NOMOUNT_NM — ensuring rules are present"
+
+    for cert in "$CERT_DIR"/*.0; do
+        [ -f "$cert" ] || continue
+        name=$(basename "$cert")
+        SYS_VPATH="/system/etc/security/cacerts/$name"
+        SYSROOT_VPATH="/system_root/system/etc/security/cacerts/$name"
+        APEX_VPATH="/apex/com.android.conscrypt/cacerts/$name"
+
+        # Refresh rules (remove then add) — best-effort
+        "$NOMOUNT_NM" rule del "$SYS_VPATH" 2>/dev/null || true
+        "$NOMOUNT_NM" rule add "$SYS_VPATH" "$cert" >/dev/null 2>&1 || log "WARN: nm rule add $SYS_VPATH failed"
+
+        "$NOMOUNT_NM" rule del "$SYSROOT_VPATH" 2>/dev/null || true
+        "$NOMOUNT_NM" rule add "$SYSROOT_VPATH" "$cert" >/dev/null 2>&1 || true
+
+        if [ "$API" -ge 34 ]; then
+            "$NOMOUNT_NM" rule del "$APEX_VPATH" 2>/dev/null || true
+            "$NOMOUNT_NM" rule add "$APEX_VPATH" "$cert" >/dev/null 2>&1 || log "WARN: nm rule add $APEX_VPATH failed"
+        fi
+
+        log "NoMount[service]: injected $name"
+    done
+
+    log "Service completed (NoMount path)"
+    log "══════════════════════════════════════════════════════"
+    exit 0
+fi
 
 # Skip for Android < 14
 if [ "$API" -lt 34 ]; then

@@ -1,16 +1,36 @@
 #!/system/bin/sh
 # ProxyPin Certificate Installer - Uninstall Script
-# Author: firdausmntp
-# GitHub: https://github.com/firdausmntp/ProxyPin-cert-installer
+# Author: NKR00711
+# GitHub: https://github.com/NKR00711/ProxyPinCA-Installer
 
 MODDIR=${0%/*}
 LOG_FILE="/data/local/tmp/ProxyPinCert.log"
+NOMOUNT_NM="/data/adb/modules/nomount/bin/nm"
+CERT_DIR="${MODDIR}/system/etc/security/cacerts"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [uninstall] $1" >> "$LOG_FILE"
 }
 
 log "Uninstall script started"
+
+# If NoMount present, remove rules we added (best-effort)
+if [ -x "$NOMOUNT_NM" ]; then
+    log "NoMount detected — removing rules for our certificates"
+    for cert in "$CERT_DIR"/*.0; do
+        [ -f "$cert" ] || continue
+        name=$(basename "$cert")
+        SYS_VPATH="/system/etc/security/cacerts/$name"
+        SYSROOT_VPATH="/system_root/system/etc/security/cacerts/$name"
+        APEX_VPATH="/apex/com.android.conscrypt/cacerts/$name"
+
+        "$NOMOUNT_NM" rule del "$SYS_VPATH" 2>/dev/null || true
+        "$NOMOUNT_NM" rule del "$SYSROOT_VPATH" 2>/dev/null || true
+        "$NOMOUNT_NM" rule del "$APEX_VPATH" 2>/dev/null || true
+
+        log "NoMount: removed rules for $name"
+    done
+fi
 
 # Unmount APEX certificates if mounted
 unmount_apex() {

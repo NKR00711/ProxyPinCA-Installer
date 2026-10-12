@@ -1,7 +1,7 @@
 #!/system/bin/sh
 # ProxyPin Certificate Installer - Post-fs-data Script
-# Author: firdausmntp
-# GitHub: https://github.com/firdausmntp/ProxyPin-cert-installer
+# Author: NKR00711
+# GitHub: https://github.com/NKR00711/ProxyPinCA-Installer
 #
 # Android 14+ APEX Bypass - Aggressive Implementation
 
@@ -9,6 +9,9 @@ MODDIR=${0%/*}
 LOG_FILE="/data/local/tmp/ProxyPinCert.log"
 CERT_DIR="${MODDIR}/system/etc/security/cacerts"
 TEMP_DIR="/data/local/tmp/proxypin-apex-ca"
+
+# NoMount binary path
+NOMOUNT_NM="/data/adb/modules/nomount/bin/nm"
 
 # Initialize logging
 mkdir -p /data/local/tmp 2>/dev/null
@@ -38,7 +41,7 @@ else
     log "Root: Magisk/Other"
 fi
 
-# Find our certificate
+# Find our certificate(s)
 CERT_FILE=$(find "$CERT_DIR" -maxdepth 1 -type f -name "*.0" 2>/dev/null | head -1)
 CERT_NAME=$(basename "$CERT_FILE" 2>/dev/null)
 
@@ -50,7 +53,36 @@ fi
 
 log "Certificate: $CERT_NAME"
 
-# For Android < 14, Magic Mount handles it
+if [ -x "$NOMOUNT_NM" ]; then
+    log "NoMount detected at $NOMOUNT_NM — injecting via NoMount rules"
+
+    for cert in "$CERT_DIR"/*.0; do
+        [ -f "$cert" ] || continue
+        name=$(basename "$cert")
+
+        SYS_VPATH="/system/etc/security/cacerts/$name"
+        SYSROOT_VPATH="/system_root/system/etc/security/cacerts/$name"
+        APEX_VPATH="/apex/com.android.conscrypt/cacerts/$name"
+
+        "$NOMOUNT_NM" rule del "$SYS_VPATH" 2>/dev/null || true
+        "$NOMOUNT_NM" rule del "$SYSROOT_VPATH" 2>/dev/null || true
+        "$NOMOUNT_NM" rule del "$APEX_VPATH" 2>/dev/null || true
+
+        "$NOMOUNT_NM" rule add "$SYS_VPATH" "$cert" >/dev/null 2>&1 || log "WARN: nm rule add $SYS_VPATH failed"
+        "$NOMOUNT_NM" rule add "$SYSROOT_VPATH" "$cert" >/dev/null 2>&1 || true
+
+        if [ "$API" -ge 34 ]; then
+            "$NOMOUNT_NM" rule add "$APEX_VPATH" "$cert" >/dev/null 2>&1 || log "WARN: nm rule add $APEX_VPATH failed"
+        fi
+
+        log "NoMount: injected $name -> $SYS_VPATH $( [ $API -ge 34 ] && echo ", $APEX_VPATH" || echo '' )"
+    done
+
+    log "Post-fs-data completed (NoMount path)"
+    log "══════════════════════════════════════════════════════"
+    exit 0
+fi
+
 if [ "$API" -lt 34 ]; then
     log "Android < 14: Using Magic Mount"
     log "Done!"

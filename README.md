@@ -188,8 +188,9 @@ GPL-3.0 License - See [LICENSE](LICENSE) for details.
 
 ## 🙏 Credits
 
-- **[firdausmntp](https://github.com/firdausmntp)** - Author & Maintainer
+- **[NKR00711](https://github.com/NKR00711)** - Author & Maintainer
 - [wanghongenpin](https://github.com/wanghongenpin/network_proxy_flutter) - ProxyPin App
+- [maxsteeel/nomount](https://github.com/maxsteeel/nomount) - NoMount
 - [topjohnwu](https://github.com/topjohnwu) - Magisk Framework
 - [tiann](https://github.com/tiann) - KernelSU Framework
 - [pomelohan](https://github.com/pomelohan/SukiSU-Ultra) - SukiSU Framework
